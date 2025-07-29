@@ -1,0 +1,26 @@
+{
+  "asset_id": "550e8400-e29b-41d4-a716-446655440000",
+  "original_path": "/Users/jane/Photos/vacation/beach_sunset.jpg",
+  "archive_path": "assets/2024/01/image/beach_sunset.jpg",
+  "file_size": 2048576,
+  "mime_type": "image/jpeg",
+  "checksum_sha256": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+  "checksum_verified_at": "2024-01-15T14:30:00Z",
+  "profile_id": "photo_collection",
+  "custom_metadata": {
+    "title": "Sunset at Paradise Beach",
+    "description": "A beautiful sunset captured during our family vacation at Paradise Beach. The golden light reflects perfectly on the calm waters while silhouettes of palm trees frame the scene.",
+    "photographer": "Jane Smith",
+    "date_taken": "2024-01-10",
+    "location": "Paradise Beach, Hawaii",
+    "camera_model": "Canon EOS R5",
+    "tags": ["sunset", "beach", "vacation", "hawaii", "paradise", "ocean", "golden hour"],
+    "event": "Family Vacation 2024",
+    "people": ["John Smith", "Emily Smith"],
+    "rating": "5",
+    "copyright": "© 2024 Jane Smith. All rights reserved.",
+    "published": false
+  },
+  "created_at": "2024-01-15T14:00:00Z",
+  "updated_at": "2024-01-15T14:30:00Z"
+}

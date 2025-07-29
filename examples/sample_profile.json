@@ -1,0 +1,83 @@
+{
+  "id": "photo_collection",
+  "name": "Photo Collection",
+  "description": "Metadata schema for organizing photograph collections",
+  "fields": [
+    {
+      "name": "title",
+      "display_name": "Title",
+      "field_type": "text",
+      "required": true,
+      "description": "Descriptive title for the photograph"
+    },
+    {
+      "name": "description",
+      "display_name": "Description",
+      "field_type": "textarea",
+      "description": "Detailed description of the photograph"
+    },
+    {
+      "name": "photographer",
+      "display_name": "Photographer",
+      "field_type": "text",
+      "description": "Name of the photographer"
+    },
+    {
+      "name": "date_taken",
+      "display_name": "Date Taken",
+      "field_type": "date",
+      "description": "Date when the photograph was taken"
+    },
+    {
+      "name": "location",
+      "display_name": "Location",
+      "field_type": "text",
+      "description": "Geographic location where photo was taken"
+    },
+    {
+      "name": "camera_model",
+      "display_name": "Camera Model",
+      "field_type": "text",
+      "description": "Camera model used to take the photograph"
+    },
+    {
+      "name": "tags",
+      "display_name": "Tags",
+      "field_type": "tags",
+      "description": "Keywords and tags for categorization"
+    },
+    {
+      "name": "event",
+      "display_name": "Event",
+      "field_type": "text",
+      "description": "Event or occasion associated with the photograph"
+    },
+    {
+      "name": "people",
+      "display_name": "People",
+      "field_type": "tags",
+      "description": "Names of people featured in the photograph"
+    },
+    {
+      "name": "rating",
+      "display_name": "Rating",
+      "field_type": "select",
+      "options": ["1", "2", "3", "4", "5"],
+      "description": "Quality rating from 1-5 stars"
+    },
+    {
+      "name": "copyright",
+      "display_name": "Copyright",
+      "field_type": "text",
+      "description": "Copyright information"
+    },
+    {
+      "name": "published",
+      "display_name": "Published",
+      "field_type": "boolean",
+      "description": "Whether this photo has been published publicly"
+    }
+  ],
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}

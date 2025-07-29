@@ -1,0 +1,136 @@
+{
+  "id": "documents",
+  "name": "Document Archive",
+  "description": "Metadata schema for organizing documents and files",
+  "fields": [
+    {
+      "name": "title",
+      "display_name": "Document Title",
+      "field_type": "text",
+      "required": true,
+      "description": "Title or name of the document"
+    },
+    {
+      "name": "author",
+      "display_name": "Author",
+      "field_type": "text",
+      "description": "Author or creator of the document"
+    },
+    {
+      "name": "subject",
+      "display_name": "Subject",
+      "field_type": "text",
+      "description": "Main subject or topic of the document"
+    },
+    {
+      "name": "description",
+      "display_name": "Description",
+      "field_type": "textarea",
+      "description": "Brief description of the document contents"
+    },
+    {
+      "name": "document_type",
+      "display_name": "Document Type",
+      "field_type": "select",
+      "options": [
+        "Report",
+        "Letter",
+        "Contract",
+        "Invoice",
+        "Receipt",
+        "Manual",
+        "Presentation",
+        "Spreadsheet",
+        "Other"
+      ],
+      "description": "Category or type of document"
+    },
+    {
+      "name": "date_created",
+      "display_name": "Date Created",
+      "field_type": "date",
+      "description": "Date the document was created"
+    },
+    {
+      "name": "date_modified",
+      "display_name": "Date Modified",
+      "field_type": "date",
+      "description": "Date the document was last modified"
+    },
+    {
+      "name": "organization",
+      "display_name": "Organization",
+      "field_type": "text",
+      "description": "Organization or company associated with the document"
+    },
+    {
+      "name": "department",
+      "display_name": "Department",
+      "field_type": "text",
+      "description": "Department or division that created the document"
+    },
+    {
+      "name": "project_code",
+      "display_name": "Project Code",
+      "field_type": "text",
+      "description": "Project or reference code"
+    },
+    {
+      "name": "classification",
+      "display_name": "Classification",
+      "field_type": "select",
+      "options": [
+        "Public",
+        "Internal",
+        "Confidential",
+        "Restricted"
+      ],
+      "description": "Security classification of the document"
+    },
+    {
+      "name": "keywords",
+      "display_name": "Keywords",
+      "field_type": "tags",
+      "description": "Keywords for search and categorization"
+    },
+    {
+      "name": "language",
+      "display_name": "Language",
+      "field_type": "select",
+      "options": [
+        "English",
+        "Spanish",
+        "French",
+        "German",
+        "Other"
+      ],
+      "description": "Primary language of the document"
+    },
+    {
+      "name": "pages",
+      "display_name": "Page Count",
+      "field_type": "number",
+      "description": "Number of pages in the document"
+    },
+    {
+      "name": "version",
+      "display_name": "Version",
+      "field_type": "text",
+      "description": "Document version number"
+    },
+    {
+      "name": "reviewed",
+      "display_name": "Reviewed",
+      "field_type": "boolean",
+      "description": "Whether the document has been reviewed"
+    },
+    {
+      "name": "approved",
+      "display_name": "Approved",
+      "field_type": "boolean",
+      "description": "Whether the document has been approved"
+    }
+  ],
+  "created_at": "2024-01-15T10:00:00Z",
+  "updated_at": "2024-01-15T10:00:00Z"
+}
