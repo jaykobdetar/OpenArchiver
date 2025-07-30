@@ -1,5 +1,6 @@
 # Archive Tool
 <img width="1199" height="838" alt="image" src="https://github.com/user-attachments/assets/d24c354a-06fa-44fd-94b8-193e5a72bb5b" />
+<img width="714" height="927" alt="image" src="https://github.com/user-attachments/assets/4a16c3c2-a324-4338-92b2-7accc1fbefa2" />
 
 A desktop application for creating large-scale, digital archives with flexible metadata management and BagIt export capabilities.
 
