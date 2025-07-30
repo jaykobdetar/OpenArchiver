@@ -147,6 +147,9 @@ class ExportWidget(QWidget):
         button_layout.addStretch()
         layout.addLayout(button_layout)
         
+        # Set initial format visibility
+        self.on_format_changed()
+        
         # Initially disable everything
         self.set_enabled(False)
     

@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 from ..models import Archive
+from .profile_editor_dialog import ProfileEditorDialog
 
 
 class ProfileManager(QWidget):
@@ -122,18 +123,85 @@ class ProfileManager(QWidget):
         self.details_label.setText(details)
     
     def new_profile(self):
-        QMessageBox.information(
-            self, "Not Implemented",
-            "Profile creation/editing is not yet implemented in the UI.\n"
-            "Use the CLI command 'create-profile' for now."
-        )
+        """Create a new profile"""
+        if not self.archive:
+            return
+        
+        try:
+            # Get existing profiles for duplicate checking
+            existing_profiles = []
+            profile_files = self.archive.get_profiles()
+            for profile_file in profile_files:
+                from ..models import Profile
+                existing_profiles.append(Profile.load_from_file(profile_file))
+            
+            # Open profile editor dialog
+            dialog = ProfileEditorDialog(existing_profiles=existing_profiles, parent=self)
+            if dialog.exec() == ProfileEditorDialog.DialogCode.Accepted:
+                profile = dialog.get_profile()
+                if profile:
+                    # Save profile to file
+                    profile_file = self.archive.profiles_path / f"{profile.id}.json"
+                    profile.save_to_file(profile_file)
+                    
+                    # Refresh the list
+                    self.refresh_profiles()
+                    
+                    # Select the new profile
+                    for i in range(self.profile_list.count()):
+                        item = self.profile_list.item(i)
+                        item_profile = item.data(Qt.ItemDataRole.UserRole)
+                        if item_profile.id == profile.id:
+                            self.profile_list.setCurrentItem(item)
+                            break
+                    
+                    QMessageBox.information(self, "Success", f"Profile '{profile.name}' created successfully.")
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to create profile:\n{e}")
     
     def edit_profile(self):
-        QMessageBox.information(
-            self, "Not Implemented",
-            "Profile creation/editing is not yet implemented in the UI.\n"
-            "Manually edit the profile JSON files in the profiles/ directory."
-        )
+        """Edit the selected profile"""
+        current_item = self.profile_list.currentItem()
+        if not current_item or not self.archive:
+            return
+        
+        try:
+            profile = current_item.data(Qt.ItemDataRole.UserRole)
+            
+            # Get existing profiles for duplicate checking (excluding current one)
+            existing_profiles = []
+            profile_files = self.archive.get_profiles()
+            for profile_file in profile_files:
+                from ..models import Profile
+                existing_profile = Profile.load_from_file(profile_file)
+                if existing_profile.id != profile.id:
+                    existing_profiles.append(existing_profile)
+            
+            # Open profile editor dialog
+            dialog = ProfileEditorDialog(profile=profile, existing_profiles=existing_profiles, parent=self)
+            if dialog.exec() == ProfileEditorDialog.DialogCode.Accepted:
+                updated_profile = dialog.get_profile()
+                if updated_profile:
+                    # Save updated profile to file
+                    profile_file = self.archive.profiles_path / f"{updated_profile.id}.json"
+                    updated_profile.save_to_file(profile_file)
+                    
+                    # Refresh the list
+                    self.refresh_profiles()
+                    
+                    # Select the updated profile
+                    for i in range(self.profile_list.count()):
+                        item = self.profile_list.item(i)
+                        item_profile = item.data(Qt.ItemDataRole.UserRole)
+                        if item_profile.id == updated_profile.id:
+                            self.profile_list.setCurrentItem(item)
+                            break
+                    
+                    QMessageBox.information(self, "Success", f"Profile '{updated_profile.name}' updated successfully.")
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to edit profile:\n{e}")
     
     def delete_profile(self):
         current_item = self.profile_list.currentItem()

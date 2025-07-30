@@ -5,11 +5,55 @@ Pytest configuration and fixtures for Archive Tool tests
 import pytest
 import tempfile
 import shutil
+import os
 from pathlib import Path
 from datetime import datetime
 import json
 
 from src.models import Archive, Profile, MetadataField, FieldType
+
+# Set up headless display for UI tests
+os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+
+
+@pytest.fixture(scope="session")
+def qt_app():
+    """Create QApplication instance for UI tests"""
+    try:
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtCore import Qt
+        
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication([])
+            # Set application attributes for testing
+            app.setAttribute(Qt.ApplicationAttribute.AA_Use96Dpi, True)
+        
+        yield app
+        
+        # Clean up any remaining widgets
+        app.closeAllWindows()
+        app.processEvents()
+        
+    except ImportError:
+        # PyQt6 not available, skip UI tests
+        pytest.skip("PyQt6 not available for UI tests")
+
+
+@pytest.fixture
+def qt_widget(qt_app):
+    """Create a widget for Qt testing with proper cleanup"""
+    from PyQt6.QtWidgets import QWidget
+    from PyQt6.QtTest import QTest
+    
+    widget = QWidget()
+    yield widget
+    
+    # Clean up
+    widget.close()
+    qt_app.processEvents()
+    widget.deleteLater()
+    qt_app.processEvents()
 
 
 @pytest.fixture

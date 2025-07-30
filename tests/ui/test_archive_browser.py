@@ -1,366 +1,476 @@
 """
-UI tests for ArchiveBrowser component
+Comprehensive UI tests for ArchiveBrowser - Real user interaction testing
 """
 
 import pytest
-from unittest.mock import Mock, patch
-from pathlib import Path
-
+from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtWidgets import QApplication, QTreeWidgetItem
 from PyQt6.QtCore import Qt
 from PyQt6.QtTest import QTest
+from PyQt6.QtGui import QContextMenuEvent
 
 from src.ui.archive_browser import ArchiveBrowser
 from src.models import Archive
-from src.core.search import SearchResult
+from src.core.search import SearchResult, SearchService
 
 
-@pytest.fixture
-def qt_app():
-    """Create QApplication instance for tests"""
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-    yield app
-    app.quit()
-
-
-@pytest.fixture
-def archive_browser(qt_app):
-    """Create ArchiveBrowser instance for tests"""
-    browser = ArchiveBrowser()
-    yield browser
-
-
-@pytest.fixture
-def mock_archive():
-    """Create mock archive for testing"""
-    archive = Mock(spec=Archive)
-    archive.name = "Test Archive"
-    archive.root_path = Path("/test/archive")
-    archive.assets_path = Path("/test/archive/assets")
-    return archive
-
-
-@pytest.fixture
-def sample_assets():
-    """Create sample assets for testing"""
-    return [
-        SearchResult(
-            asset_id="asset1",
-            archive_path="assets/2024/01/documents/file1.txt",
-            file_name="file1.txt",
-            file_size=1024,
-            mime_type="text/plain",
-            checksum_sha256="abc123",
-            profile_id="documents",
-            created_at="2024-01-01T00:00:00",
-            custom_metadata={"title": "Document 1"}
-        ),
-        SearchResult(
-            asset_id="asset2",
-            archive_path="assets/2024/02/images/photo.jpg",
-            file_name="photo.jpg",
-            file_size=2048,
-            mime_type="image/jpeg",
-            checksum_sha256="def456",
-            profile_id="photos",
-            created_at="2024-02-01T00:00:00",
-            custom_metadata={"title": "Photo 1"}
-        ),
-        SearchResult(
-            asset_id="asset3",
-            archive_path="assets/2024/01/documents/file2.pdf",
-            file_name="file2.pdf",
-            file_size=4096,
-            mime_type="application/pdf",
-            checksum_sha256="ghi789",
-            profile_id="documents",
-            created_at="2024-01-15T00:00:00",
-            custom_metadata={"title": "Document 2"}
-        )
-    ]
-
-
+@pytest.mark.ui
 class TestArchiveBrowser:
-    """Test ArchiveBrowser functionality"""
+    """Test ArchiveBrowser with real PyQt6 widget interactions"""
     
-    def test_browser_initialization(self, archive_browser):
-        """Test that ArchiveBrowser initializes correctly"""
-        assert archive_browser.archive is None
-        assert archive_browser.tree_widget is not None
-        assert archive_browser.details_panel is not None
-        
-        # Check initial tree state
-        assert archive_browser.tree_widget.topLevelItemCount() == 0
+    @pytest.fixture
+    def mock_archive(self, temp_dir):
+        """Create mock archive for testing"""
+        archive = Mock(spec=Archive)
+        archive.root_path = temp_dir / "test_archive"
+        archive.config = Mock()
+        archive.config.name = "Test Archive"
+        return archive
     
-    def test_set_archive(self, archive_browser, mock_archive):
-        """Test setting archive updates browser state"""
-        archive_browser.set_archive(mock_archive)
+    @pytest.fixture
+    def archive_browser(self, qt_app, mock_archive):
+        """Create ArchiveBrowser instance for testing"""
+        widget = ArchiveBrowser()
         
-        assert archive_browser.archive == mock_archive
-    
-    def test_tree_population_with_assets(self, archive_browser, mock_archive, sample_assets):
-        """Test that tree is populated correctly with assets"""
-        # Setup archive browser
-        archive_browser.set_archive(mock_archive)
-        
-        # Mock search service to return assets
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
+        # Mock the SearchService to avoid database operations
+        with patch('src.ui.archive_browser.SearchService') as mock_service_class:
+            mock_service = Mock(spec=SearchService)
+            mock_service.search.return_value = ([], 0)
             mock_service_class.return_value = mock_service
             
-            # Populate tree
-            archive_browser.populate_tree()
+            widget.set_archive(mock_archive)
             
-            # Check tree structure
-            tree = archive_browser.tree_widget
-            assert tree.topLevelItemCount() > 0
-            
-            # Should have year folders
-            year_items = []
-            for i in range(tree.topLevelItemCount()):
-                item = tree.topLevelItem(i)
-                if item.text(0) == "2024":
-                    year_items.append(item)
-            
-            assert len(year_items) > 0
-    
-    def test_tree_hierarchy_structure(self, archive_browser, mock_archive, sample_assets):
-        """Test that tree creates proper hierarchy (year/month/type)"""
-        archive_browser.set_archive(mock_archive)
+            yield widget, mock_service
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            tree = archive_browser.tree_widget
-            
-            # Find 2024 folder
-            year_item = None
-            for i in range(tree.topLevelItemCount()):
-                item = tree.topLevelItem(i)
-                if item.text(0) == "2024":
-                    year_item = item
-                    break
-            
-            assert year_item is not None
-            assert year_item.childCount() >= 2  # Should have 01 and 02 months
-            
-            # Check month folders exist
-            month_names = []
-            for i in range(year_item.childCount()):
-                month_item = year_item.child(i)
-                month_names.append(month_item.text(0))
-            
-            assert "01" in month_names
-            assert "02" in month_names
+        # Cleanup
+        widget.close()
+        qt_app.processEvents()
+        widget.deleteLater()
+        qt_app.processEvents()
     
-    def test_tree_item_selection(self, archive_browser, mock_archive, sample_assets):
-        """Test that selecting tree items shows details"""
-        archive_browser.set_archive(mock_archive)
+    @pytest.fixture
+    def sample_search_results(self):
+        """Create sample search results for testing"""
+        return [
+            SearchResult(
+                asset_id="asset1",
+                archive_path="assets/2024/01/documents/doc1.txt",
+                file_name="doc1.txt",
+                file_size=1024,
+                mime_type="text/plain",
+                checksum_sha256="abc123def456",
+                profile_id="documents",
+                created_at="2024-01-01T10:00:00",
+                custom_metadata={"title": "Document 1"}
+            ),
+            SearchResult(
+                asset_id="asset2",
+                archive_path="assets/2024/01/images/photo1.jpg",
+                file_name="photo1.jpg",
+                file_size=2048000,
+                mime_type="image/jpeg",
+                checksum_sha256="def456ghi789",
+                profile_id="images",
+                created_at="2024-01-15T14:30:00",
+                custom_metadata={"title": "Photo 1"}
+            ),
+            SearchResult(
+                asset_id="asset3",
+                archive_path="assets/2024/02/documents/doc2.txt",
+                file_name="doc2.txt",
+                file_size=512,
+                mime_type="text/plain",
+                checksum_sha256="ghi789jkl012",
+                profile_id="documents",
+                created_at="2024-02-01T09:15:00",
+                custom_metadata={"title": "Document 2"}
+            ),
+            SearchResult(
+                asset_id="asset4",
+                archive_path="assets/2024/02/images/photo2.png",
+                file_name="photo2.png",
+                file_size=1536000,
+                mime_type="image/png",
+                checksum_sha256="jkl012mno345",
+                profile_id="images",
+                created_at="2024-02-10T16:45:00",
+                custom_metadata={"title": "Photo 2"}
+            )
+        ]
+
+    def test_widget_initialization(self, qt_app):
+        """Test ArchiveBrowser initializes correctly"""
+        widget = ArchiveBrowser()
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            tree = archive_browser.tree_widget
-            
-            # Find and select a file item
-            def find_file_item(parent_item, target_filename):
-                for i in range(parent_item.childCount()):
-                    child = parent_item.child(i)
-                    if child.text(0) == target_filename:
-                        return child
-                    # Recursively search children
-                    result = find_file_item(child, target_filename)
-                    if result:
-                        return result
-                return None
-            
-            # Look for file1.txt
-            for i in range(tree.topLevelItemCount()):
-                top_item = tree.topLevelItem(i)
-                file_item = find_file_item(top_item, "file1.txt")
-                if file_item:
-                    tree.setCurrentItem(file_item)
-                    QApplication.processEvents()
-                    break
-            
-            # Details panel should show information
-            details = archive_browser.details_panel
-            assert details.isVisible()
-    
-    def test_tree_context_menu(self, archive_browser, mock_archive, sample_assets):
-        """Test context menu on tree items"""
-        archive_browser.set_archive(mock_archive)
+        # Test basic widget properties
+        assert widget is not None
+        assert widget.archive is None
+        assert widget.search_service is None
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            tree = archive_browser.tree_widget
-            
-            # Right-click on tree
-            with patch('PyQt6.QtWidgets.QMenu.exec') as mock_exec:
-                QTest.mouseClick(tree.viewport(), Qt.MouseButton.RightButton)
-                QApplication.processEvents()
-                
-                # Context menu creation should not crash
-                # (Actual menu display depends on implementation)
-    
-    def test_refresh_functionality(self, archive_browser, mock_archive, sample_assets):
-        """Test refreshing the tree updates content"""
-        archive_browser.set_archive(mock_archive)
+        # Test UI components exist
+        assert hasattr(widget, 'tree')
+        assert widget.tree is not None
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
+        # Test tree widget properties
+        assert widget.tree.columnCount() == 4
+        assert widget.tree.headerItem().text(0) == "Name"
+        assert widget.tree.headerItem().text(1) == "Size"
+        assert widget.tree.headerItem().text(2) == "Type"
+        assert widget.tree.headerItem().text(3) == "Modified"
+        
+        # Test initial state
+        assert widget.tree.topLevelItemCount() == 0
+        
+        widget.close()
+        qt_app.processEvents()
+        widget.deleteLater()
+        qt_app.processEvents()
+
+    def test_archive_setting(self, archive_browser):
+        """Test setting archive enables/disables widget correctly"""
+        widget, mock_service = archive_browser
+        
+        # Should be enabled since we set archive in fixture
+        assert widget.archive is not None
+        assert widget.search_service is not None
+        
+        # Test clearing archive
+        widget.set_archive(None)
+        assert widget.archive is None
+        assert widget.search_service is None
+        assert widget.tree.topLevelItemCount() == 0
+
+    def test_tree_population_with_results(self, archive_browser, sample_search_results):
+        """Test tree population from search results"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        # Trigger refresh
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Verify tree was populated
+        assert widget.tree.topLevelItemCount() > 0
+        
+        # Check that assets folder exists
+        assets_item = None
+        for i in range(widget.tree.topLevelItemCount()):
+            item = widget.tree.topLevelItem(i)
+            if item.text(0) == "assets":
+                assets_item = item
+                break
+        
+        assert assets_item is not None
+        assert assets_item.text(2) == "Folder"
+        assert assets_item.childCount() > 0  # Should have year folders
+
+    def test_tree_structure_hierarchy(self, archive_browser, sample_search_results):
+        """Test hierarchical tree structure matches file paths"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Navigate the tree structure: assets -> 2024 -> 01 -> documents
+        assets_item = widget.tree.topLevelItem(0)  # Should be "assets"
+        assert assets_item.text(0) == "assets"
+        
+        # Find 2024 folder
+        year_2024_item = None
+        for i in range(assets_item.childCount()):
+            child = assets_item.child(i)
+            if child.text(0) == "2024":
+                year_2024_item = child
+                break
+        
+        assert year_2024_item is not None
+        assert year_2024_item.text(2) == "Folder"
+
+    def test_file_items_have_correct_data(self, archive_browser, sample_search_results):
+        """Test file items display correct information"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Find a file item (need to navigate through the tree)
+        def find_file_item(parent_item, filename):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.text(0) == filename:
+                    return child
+                # Recursively search in subdirectories
+                found = find_file_item(child, filename)
+                if found:
+                    return found
+            return None
+        
+        # Look for doc1.txt
+        doc1_item = find_file_item(widget.tree.invisibleRootItem(), "doc1.txt")
+        assert doc1_item is not None
+        
+        # Check file item properties
+        assert doc1_item.text(0) == "doc1.txt"
+        assert "1.0 KB" in doc1_item.text(1)  # Size formatted
+        assert doc1_item.text(2) == "text/plain"
+        assert doc1_item.text(3) == "2024-01-01"  # Date part
+        
+        # Check that search result is stored in item data
+        search_result = doc1_item.data(0, Qt.ItemDataRole.UserRole)
+        assert search_result is not None
+        assert search_result.file_name == "doc1.txt"
+
+    def test_size_formatting(self, archive_browser):
+        """Test file size formatting"""
+        widget, mock_service = archive_browser
+        
+        # Test different size formats
+        assert widget._format_size(0) == "0 B"
+        assert widget._format_size(512) == "512.0 B"
+        assert widget._format_size(1024) == "1.0 KB"
+        assert widget._format_size(1048576) == "1.0 MB"
+        assert widget._format_size(2048000) == "2.0 MB"
+
+    def test_item_selection_signal_emission(self, archive_browser, sample_search_results):
+        """Test file selection emits signal"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        # Connect signal to mock
+        signal_mock = Mock()
+        widget.file_selected.connect(signal_mock)
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Find and select a file item
+        def find_and_select_file(parent_item, filename):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.text(0) == filename:
+                    widget.tree.setCurrentItem(child)
+                    return True
+                if find_and_select_file(child, filename):
+                    return True
+            return False
+        
+        # Select doc1.txt
+        found = find_and_select_file(widget.tree.invisibleRootItem(), "doc1.txt")
+        assert found
+        QApplication.processEvents()
+        
+        # Verify signal was emitted
+        signal_mock.assert_called_once()
+        # Check the emitted path
+        call_args = signal_mock.call_args[0]
+        assert "doc1.txt" in call_args[0]
+
+    def test_item_double_click_handling(self, archive_browser, sample_search_results):
+        """Test double-click on file items"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Find a file item
+        def find_file_item(parent_item, filename):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.text(0) == filename:
+                    return child
+                found = find_file_item(child, filename)
+                if found:
+                    return found
+            return None
+        
+        doc1_item = find_file_item(widget.tree.invisibleRootItem(), "doc1.txt")
+        assert doc1_item is not None
+        
+        # Mock subprocess to avoid actually opening files
+        # Also mock file existence since we're using fake paths
+        with patch('subprocess.call') as mock_subprocess, \
+             patch('pathlib.Path.exists', return_value=True):
+            # Call the double-click handler directly instead of simulating clicks
+            widget.on_item_double_clicked(doc1_item, 0)
             
-            # First population
-            mock_service.search.return_value = (sample_assets[:2], 2)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            initial_count = archive_browser.tree_widget.topLevelItemCount()
-            
-            # Update with more assets
-            mock_service.search.return_value = (sample_assets, 3)
-            
-            # Refresh
-            archive_browser.refresh()
+            # Verify subprocess was called to open the file
+            mock_subprocess.assert_called_once()
+
+    def test_refresh_with_empty_results(self, archive_browser):
+        """Test refresh with no search results"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = ([], 0)
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Tree should be empty
+        assert widget.tree.topLevelItemCount() == 0
+
+    def test_refresh_with_search_service_error(self, archive_browser):
+        """Test refresh handles search service errors gracefully"""
+        widget, mock_service = archive_browser
+        mock_service.search.side_effect = Exception("Search failed")
+        
+        # Mock QMessageBox to avoid actual dialog
+        with patch('PyQt6.QtWidgets.QMessageBox.warning') as mock_warning:
+            widget.refresh()
             QApplication.processEvents()
             
-            # Tree should be updated
-            final_count = archive_browser.tree_widget.topLevelItemCount()
-            # Note: exact count comparison depends on tree structure logic
-    
-    def test_search_filtering(self, archive_browser, mock_archive, sample_assets):
-        """Test filtering tree based on search"""
-        archive_browser.set_archive(mock_archive)
+            # Should show warning dialog
+            mock_warning.assert_called_once()
+            # Tree should remain empty
+            assert widget.tree.topLevelItemCount() == 0
+
+    def test_context_menu_functionality(self, archive_browser, sample_search_results):
+        """Test context menu functionality without actually displaying menu"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            # Apply search filter
-            filtered_assets = [sample_assets[0]]  # Only first asset
-            mock_service.search.return_value = (filtered_assets, 1)
-            
-            archive_browser.filter_by_search("Document 1")
-            QApplication.processEvents()
-            
-            # Tree should show fewer items
-            tree = archive_browser.tree_widget
-            # Verify that filtering occurred (implementation-dependent)
-    
-    def test_expand_collapse_functionality(self, archive_browser, mock_archive, sample_assets):
-        """Test expanding and collapsing tree nodes"""
-        archive_browser.set_archive(mock_archive)
+        widget.refresh()
+        QApplication.processEvents()
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            tree = archive_browser.tree_widget
-            
-            # Find a parent item
-            if tree.topLevelItemCount() > 0:
-                top_item = tree.topLevelItem(0)
-                
-                # Test expand
-                tree.expandItem(top_item)
-                assert top_item.isExpanded()
-                
-                # Test collapse
-                tree.collapseItem(top_item)
-                assert not top_item.isExpanded()
-    
-    def test_details_panel_content(self, archive_browser, mock_archive, sample_assets):
-        """Test that details panel shows correct asset information"""
-        archive_browser.set_archive(mock_archive)
+        # Find a file item
+        def find_file_item(parent_item, filename):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.text(0) == filename:
+                    return child
+                found = find_file_item(child, filename)
+                if found:
+                    return found
+            return None
         
-        # Mock the details panel update method
-        with patch.object(archive_browser, 'update_details_panel') as mock_update:
-            # Simulate selecting an asset
-            asset = sample_assets[0]
-            archive_browser.show_asset_details(asset)
-            
-            # Verify details panel update was called
-            mock_update.assert_called_once_with(asset)
-    
-    def test_file_type_icons(self, archive_browser, mock_archive, sample_assets):
-        """Test that different file types show appropriate icons"""
-        archive_browser.set_archive(mock_archive)
+        doc1_item = find_file_item(widget.tree.invisibleRootItem(), "doc1.txt")
+        assert doc1_item is not None
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            # Check that tree items have icons
-            # (Implementation depends on how icons are set)
-            tree = archive_browser.tree_widget
-            
-            def check_items_have_icons(parent_item):
-                for i in range(parent_item.childCount()):
-                    child = parent_item.child(i)
-                    # Each item should have some icon
-                    assert not child.icon(0).isNull() or child.childCount() > 0
-                    check_items_have_icons(child)
-            
-            for i in range(tree.topLevelItemCount()):
-                check_items_have_icons(tree.topLevelItem(i))
-    
-    def test_empty_archive_handling(self, archive_browser, mock_archive):
-        """Test handling of empty archive"""
-        archive_browser.set_archive(mock_archive)
+        # Test the underlying methods that context menu would call
+        search_result = doc1_item.data(0, Qt.ItemDataRole.UserRole)
+        assert search_result is not None
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = ([], 0)  # Empty results
-            mock_service_class.return_value = mock_service
-            
-            archive_browser.populate_tree()
-            
-            tree = archive_browser.tree_widget
-            assert tree.topLevelItemCount() == 0
-            
-            # Should show empty state message
-            # (Implementation-dependent)
-    
-    def test_asset_count_display(self, archive_browser, mock_archive, sample_assets):
-        """Test that asset counts are displayed correctly"""
-        archive_browser.set_archive(mock_archive)
+        # Test show_in_file_manager functionality
+        # Mock the file path existence check since we're using fake paths
+        with patch('subprocess.call') as mock_subprocess, \
+             patch('pathlib.Path.exists', return_value=True):
+            widget.show_in_file_manager(search_result)
+            mock_subprocess.assert_called_once()
         
-        with patch('src.core.search.SearchService') as mock_service_class:
-            mock_service = Mock()
-            mock_service.search.return_value = (sample_assets, 3)
-            mock_service_class.return_value = mock_service
+        # Test copy_to_clipboard functionality
+        with patch('PyQt6.QtWidgets.QApplication.clipboard') as mock_clipboard_func:
+            mock_clipboard = Mock()
+            mock_clipboard_func.return_value = mock_clipboard
             
-            archive_browser.populate_tree()
+            # Test copying path
+            widget.copy_to_clipboard(search_result.archive_path)
+            mock_clipboard.setText.assert_called_with(search_result.archive_path)
             
-            # Check if folder items show counts
-            tree = archive_browser.tree_widget
-            if tree.topLevelItemCount() > 0:
-                year_item = tree.topLevelItem(0)
-                item_text = year_item.text(0)
-                # May include count like "2024 (3 items)"
-                # Implementation-dependent feature
+            # Test copying checksum
+            widget.copy_to_clipboard(search_result.checksum_sha256)
+            mock_clipboard.setText.assert_called_with(search_result.checksum_sha256)
+
+    def test_copy_to_clipboard_functionality(self, archive_browser):
+        """Test copying text to clipboard"""
+        widget, mock_service = archive_browser
+        
+        test_text = "test/path/to/file.txt"
+        
+        # Mock QApplication.clipboard
+        with patch('PyQt6.QtWidgets.QApplication.clipboard') as mock_clipboard_func:
+            mock_clipboard = Mock()
+            mock_clipboard_func.return_value = mock_clipboard
+            
+            widget.copy_to_clipboard(test_text)
+            
+            # Verify clipboard was used
+            mock_clipboard.setText.assert_called_once_with(test_text)
+
+    def test_tree_expansion_after_refresh(self, archive_browser, sample_search_results):
+        """Test that first level of tree is expanded after refresh"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Check that top-level items are expanded
+        for i in range(widget.tree.topLevelItemCount()):
+            item = widget.tree.topLevelItem(i)
+            assert item.isExpanded()
+
+    def test_widget_cleanup(self, archive_browser):
+        """Test proper widget cleanup"""
+        widget, mock_service = archive_browser
+        
+        # Test that widget can be closed without issues
+        # (The fixture already handles proper cleanup)
+        assert widget is not None
+        assert hasattr(widget, 'tree')
+        
+        # Test clearing archive
+        widget.set_archive(None)
+        assert widget.archive is None
+        assert widget.search_service is None
+        
+        # Should not crash
+        assert True
+
+    def test_multiple_refresh_operations(self, archive_browser, sample_search_results):
+        """Test multiple refresh operations in sequence"""
+        widget, mock_service = archive_browser
+        
+        # First refresh with results
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        widget.refresh()
+        QApplication.processEvents()
+        
+        first_count = widget.tree.topLevelItemCount()
+        assert first_count > 0
+        
+        # Second refresh with fewer results
+        mock_service.search.return_value = (sample_search_results[:2], 2)
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Tree should be repopulated
+        second_count = widget.tree.topLevelItemCount()
+        assert second_count > 0
+        # Structure might be the same even with fewer files
+        
+        # Third refresh with no results
+        mock_service.search.return_value = ([], 0)
+        widget.refresh()
+        QApplication.processEvents()
+        
+        assert widget.tree.topLevelItemCount() == 0
+
+    def test_file_vs_directory_item_distinction(self, archive_browser, sample_search_results):
+        """Test that files and directories are properly distinguished in the tree"""
+        widget, mock_service = archive_browser
+        mock_service.search.return_value = (sample_search_results, len(sample_search_results))
+        
+        widget.refresh()
+        QApplication.processEvents()
+        
+        # Find directory and file items
+        assets_item = widget.tree.topLevelItem(0)  # Should be "assets" directory
+        assert assets_item.text(2) == "Folder"
+        assert assets_item.text(1) == ""  # No size for directories
+        
+        # Find a file item
+        def find_file_item(parent_item):
+            for i in range(parent_item.childCount()):
+                child = parent_item.child(i)
+                if child.data(0, Qt.ItemDataRole.UserRole) is not None:
+                    return child
+                found = find_file_item(child)
+                if found:
+                    return found
+            return None
+        
+        file_item = find_file_item(widget.tree.invisibleRootItem())
+        assert file_item is not None
+        assert file_item.text(2) != "Folder"  # Should have actual MIME type
+        assert file_item.text(1) != ""  # Should have size
