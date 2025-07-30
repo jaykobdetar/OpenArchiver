@@ -141,7 +141,8 @@ python run_tests.py coverage
 - `src/core/` - Services (ingestion, indexing, search, integrity, export)
 - `src/ui/` - PyQt6 interface components
 - `tests/` - Comprehensive test suite with 50+% coverage
-<img width="1915" height="901" alt="image" src="https://github.com/user-attachments/assets/3b2caf98-63dd-4e1d-8807-f3bf24099ab8" />
+<img width="1915" height="901" alt="image" src="https://github.com/user-attachments/assets/6f61a852-1ebf-406a-a5cd-4cd0a2fecc54" />
+
 
 ### Architecture
 
