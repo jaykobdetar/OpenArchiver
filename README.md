@@ -146,7 +146,7 @@ python run_tests.py coverage
 
 ### Architecture
 
-The system uses a unique "disposable index" architecture where:
+The system uses a  "disposable index" architecture where:
 - Human-readable JSON sidecars are the authoritative source
 - SQLite provides fast search capabilities
 - The database can be rebuilt from sidecars if corrupted
