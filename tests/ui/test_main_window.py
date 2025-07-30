@@ -39,8 +39,6 @@ class TestMainWindowSimplified:
         
         # Create a base mock widget class with signals
         class MockWidgetWithSignals(QWidget):
-            file_selected = pyqtSignal(str)
-            folder_selected = pyqtSignal(str)
             search_performed = pyqtSignal(str)
             profile_selected = pyqtSignal(str)
             profile_changed = pyqtSignal()
@@ -49,18 +47,11 @@ class TestMainWindowSimplified:
             export_started = pyqtSignal()
             export_completed = pyqtSignal(str)
         
-        # Patch all child widgets
-        with patch('src.ui.main_window.ArchiveBrowser') as mock_browser, \
-             patch('src.ui.main_window.SearchWidget') as mock_search, \
+        # Patch all child widgets (ArchiveBrowser removed)
+        with patch('src.ui.main_window.SearchWidget') as mock_search, \
              patch('src.ui.main_window.ProfileManager') as mock_profile, \
              patch('src.ui.main_window.IntegrityWidget') as mock_integrity, \
              patch('src.ui.main_window.ExportWidget') as mock_export:
-            
-            # Create mock widgets
-            browser_widget = MockWidgetWithSignals()
-            browser_widget.set_archive = Mock()
-            browser_widget.refresh = Mock()
-            mock_browser.return_value = browser_widget
             
             search_widget = MockWidgetWithSignals()
             search_widget.set_archive = Mock()
@@ -84,8 +75,7 @@ class TestMainWindowSimplified:
             
             window = MainWindow()
             
-            # Store references
-            window.archive_browser = browser_widget
+            # Store references (archive_browser removed)
             window.search_widget = search_widget
             window.profile_manager = profile_widget
             window.integrity_widget = integrity_widget
@@ -134,7 +124,6 @@ class TestMainWindowSimplified:
             # Verify all widgets were updated (called via on_archive_changed)
             # Since we patched the signal, we need to call on_archive_changed manually
             main_window.on_archive_changed(mock_archive)
-            main_window.archive_browser.set_archive.assert_called_with(mock_archive)
             main_window.search_widget.set_archive.assert_called_with(mock_archive)
             main_window.profile_manager.set_archive.assert_called_with(mock_archive)
             main_window.integrity_widget.set_archive.assert_called_with(mock_archive)
@@ -164,7 +153,7 @@ class TestMainWindowSimplified:
         # Verify widgets were cleared (call on_archive_changed manually since we patched signal)
         main_window.on_archive_changed(None)
         # Last call should be with None (we called it twice manually: once with mock_archive, once with None)
-        assert main_window.archive_browser.set_archive.call_args[0][0] is None
+        assert main_window.search_widget.set_archive.call_args[0][0] is None
 
     def test_tab_switching(self, main_window):
         """Test switching between tabs programmatically"""
@@ -325,9 +314,8 @@ class TestMainWindowSimplified:
 
     def test_child_widget_interaction(self, main_window):
         """Test interaction between child widgets"""
-        # Simulate file selection in browser
-        test_file = "/test/path/file.txt"
-        main_window.archive_browser.file_selected.emit(test_file)
+        # Test search widget interaction
+        main_window.search_widget.search_performed.emit("test query")
         QApplication.processEvents()
         
         # Should not crash
