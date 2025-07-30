@@ -140,7 +140,8 @@ python run_tests.py coverage
 - `src/models/` - Core data models (Archive, Asset, Profile)
 - `src/core/` - Services (ingestion, indexing, search, integrity, export)
 - `src/ui/` - PyQt6 interface components
-- `tests/` - Comprehensive test suite with 68% coverage
+- `tests/` - Comprehensive test suite with 50+% coverage
+<img width="1915" height="901" alt="image" src="https://github.com/user-attachments/assets/3b2caf98-63dd-4e1d-8807-f3bf24099ab8" />
 
 ### Architecture
 
